@@ -557,7 +557,7 @@
 //
 // Usage:
 //
-// 	go get [-d] [-m] [-t] [-u] [-v] [-insecure] [build flags] [packages]
+// 	go get [-d] [-t] [-u] [-v] [-insecure] [build flags] [packages]
 //
 // Get resolves and adds dependencies to the current development module
 // and then builds and installs them.
@@ -603,9 +603,12 @@
 // The -t flag instructs get to consider modules needed to build tests of
 // packages specified on the command line.
 //
-// The -u flag instructs get to update dependencies to use newer minor or
-// patch releases when available. Continuing the previous example,
-// 'go get -u A' will use the latest A with B v1.3.1 (not B v1.2.3).
+// The -u flag instructs get to update modules providing dependencies
+// of packages named on the command line to use newer minor or patch
+// releases when available. Continuing the previous example, 'go get -u A'
+// will use the latest A with B v1.3.1 (not B v1.2.3). If B requires module C,
+// but C does not provide any packages needed to build packages in A
+// (not including tests), then C will not be updated.
 //
 // The -u=patch flag (not -u patch) also instructs get to update dependencies,
 // but changes the default to select patch releases.
@@ -621,18 +624,6 @@
 // this automatically. Similarly, downgrading one dependency may
 // require downgrading other dependencies, and 'go get' does
 // this automatically as well.
-//
-// The -m flag instructs get to stop here, after resolving, upgrading,
-// and downgrading modules and updating go.mod. When using -m,
-// each specified package path must be a module path as well,
-// not the import path of a package below the module root.
-//
-// When the -m and -u flags are used together, 'go get' will upgrade
-// modules that provide packages depended on by the modules named on
-// the command line. For example, 'go get -u -m A' will upgrade A and
-// any module providing packages imported by packages in A.
-// 'go get -u -m' will upgrade modules that provided packages needed
-// by the main module.
 //
 // The -insecure flag permits fetching from repositories and resolving
 // custom domains using insecure schemes such as HTTP. Use with caution.
@@ -2579,7 +2570,9 @@
 // The go command can fetch modules from a proxy or connect to source control
 // servers directly, according to the setting of the GOPROXY environment
 // variable (see 'go help env'). The default setting for GOPROXY is
-// "https://proxy.golang.org", the Go module mirror run by Google.
+// "https://proxy.golang.org,direct", which means to try the
+// Go module mirror run by Google and fall back to a direct connection
+// if the proxy reports that it does not have the module (HTTP error 404 or 410).
 // See https://proxy.golang.org/privacy for the service's privacy policy.
 // If GOPROXY is set to the string "direct", downloads use a direct connection
 // to source control servers. Setting GOPROXY to "off" disallows downloading
