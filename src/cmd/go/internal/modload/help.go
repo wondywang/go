@@ -21,23 +21,26 @@ which source files are used in a given build.
 
 Module support
 
-Go 1.13 includes official support for Go modules,
-including a module-aware 'go get' command.
-Module-aware mode is active by default.
+Go 1.13 includes support for Go modules. Module-aware mode is active by default
+whenever a go.mod file is found in, or in a parent of, the current directory.
+
+The quickest way to take advantage of module support is to check out your
+repository, create a go.mod file (described in the next section) there, and run
+go commands from within that file tree.
 
 For more fine-grained control, Go 1.13 continues to respect
 a temporary environment variable, GO111MODULE, which can be set to one
-of three string values: off, auto, or on (the default).
-If GO111MODULE=on or is unset, then the go command requires the use of
-modules, never consulting GOPATH. We refer to this as the command
+of three string values: off, on, or auto (the default).
+If GO111MODULE=on, then the go command requires the use of modules,
+never consulting GOPATH. We refer to this as the command
 being module-aware or running in "module-aware mode".
-If GO111MODULE=auto, then the go command enables or disables module
-support based on the current directory. Module support is enabled only
-when the current directory is outside GOPATH/src and itself contains a
-go.mod file or is below a directory containing a go.mod file.
 If GO111MODULE=off, then the go command never uses
 module support. Instead it looks in vendor directories and GOPATH
 to find dependencies; we now refer to this as "GOPATH mode."
+If GO111MODULE=auto or is unset, then the go command enables or disables
+module support based on the current directory.
+Module support is enabled only when the current directory contains a
+go.mod file or is below a directory containing a go.mod file.
 
 In module-aware mode, GOPATH no longer defines the meaning of imports
 during a build, but it still stores downloaded dependencies (in GOPATH/pkg/mod)
@@ -362,8 +365,9 @@ for future go command invocations.
 No matter the source of the modules, the go command checks downloads against
 known checksums, to detect unexpected changes in the content of any specific
 module version from one day to the next. This check first consults the current
-module's go.sum file but falls back to the Go checksum database.
-See 'go help module-auth' for details.
+module's go.sum file but falls back to the Go checksum database, controlled by
+the GOSUMDB and GONOSUMDB environment variables. See 'go help module-auth'
+for details.
 
 See 'go help goproxy' for details about the proxy protocol and also
 the format of the cached downloaded packages.
