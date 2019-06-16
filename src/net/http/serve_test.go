@@ -2900,15 +2900,6 @@ func TestStripPrefix(t *testing.T) {
 		t.Errorf("test 2: got status %v, want %v", g, e)
 	}
 	res.Body.Close()
-
-	res, err = c.Get(ts.URL + "/foo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if g, e := res.Header.Get("X-Path"), "/"; g != e {
-		t.Errorf("test 3: got %s, want %s", g, e)
-	}
-	res.Body.Close()
 }
 
 // https://golang.org/issue/18952.
@@ -4282,7 +4273,7 @@ func testServerEmptyBodyRace(t *testing.T, h2 bool) {
 	var n int32
 	cst := newClientServerTest(t, h2, HandlerFunc(func(rw ResponseWriter, req *Request) {
 		atomic.AddInt32(&n, 1)
-	}))
+	}), optQuietLog)
 	defer cst.close()
 	var wg sync.WaitGroup
 	const reqs = 20

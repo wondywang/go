@@ -557,7 +557,7 @@
 //
 // Usage:
 //
-// 	go get [-d] [-m] [-t] [-u] [-v] [-insecure] [build flags] [packages]
+// 	go get [-d] [-t] [-u] [-v] [-insecure] [build flags] [packages]
 //
 // Get resolves and adds dependencies to the current development module
 // and then builds and installs them.
@@ -603,9 +603,12 @@
 // The -t flag instructs get to consider modules needed to build tests of
 // packages specified on the command line.
 //
-// The -u flag instructs get to update dependencies to use newer minor or
-// patch releases when available. Continuing the previous example,
-// 'go get -u A' will use the latest A with B v1.3.1 (not B v1.2.3).
+// The -u flag instructs get to update modules providing dependencies
+// of packages named on the command line to use newer minor or patch
+// releases when available. Continuing the previous example, 'go get -u A'
+// will use the latest A with B v1.3.1 (not B v1.2.3). If B requires module C,
+// but C does not provide any packages needed to build packages in A
+// (not including tests), then C will not be updated.
 //
 // The -u=patch flag (not -u patch) also instructs get to update dependencies,
 // but changes the default to select patch releases.
@@ -621,18 +624,6 @@
 // this automatically. Similarly, downgrading one dependency may
 // require downgrading other dependencies, and 'go get' does
 // this automatically as well.
-//
-// The -m flag instructs get to stop here, after resolving, upgrading,
-// and downgrading modules and updating go.mod. When using -m,
-// each specified package path must be a module path as well,
-// not the import path of a package below the module root.
-//
-// When the -m and -u flags are used together, 'go get' will upgrade
-// modules that provide packages depended on by the modules named on
-// the command line. For example, 'go get -u -m A' will upgrade A and
-// any module providing packages imported by packages in A.
-// 'go get -u -m' will upgrade modules that provided packages needed
-// by the main module.
 //
 // The -insecure flag permits fetching from repositories and resolving
 // custom domains using insecure schemes such as HTTP. Use with caution.
@@ -1576,7 +1567,18 @@
 // 	GOPATH
 // 		For more details see: 'go help gopath'.
 // 	GOPROXY
-// 		URL of Go module proxy. See 'go help goproxy'.
+// 		URL of Go module proxy. See 'go help modules'.
+// 	GONOPROXY
+// 		Comma-separated list of glob patterns (in the syntax of Go's path.Match)
+// 		of module path prefixes that should always be fetched directly, ignoring
+// 		the GOPROXY setting. See 'go help modules'.
+// 	GOSUMDB
+// 		The name of checksum database to use and optionally its public key and
+// 		URL. See 'go help module-auth'.
+// 	GONOSUMDB
+// 		Comma-separated list of glob patterns (in the syntax of Go's path.Match)
+// 		of module path prefixes that should not be compared against the checksum
+// 		database. See 'go help module-auth'.
 // 	GOROOT
 // 		The root of the go tree.
 // 	GOTMPDIR
@@ -2269,23 +2271,26 @@
 //
 // Module support
 //
-// Go 1.13 includes official support for Go modules,
-// including a module-aware 'go get' command.
-// Module-aware mode is active by default.
+// Go 1.13 includes support for Go modules. Module-aware mode is active by default
+// whenever a go.mod file is found in, or in a parent of, the current directory.
+//
+// The quickest way to take advantage of module support is to check out your
+// repository, create a go.mod file (described in the next section) there, and run
+// go commands from within that file tree.
 //
 // For more fine-grained control, Go 1.13 continues to respect
 // a temporary environment variable, GO111MODULE, which can be set to one
-// of three string values: off, auto, or on (the default).
-// If GO111MODULE=on or is unset, then the go command requires the use of
-// modules, never consulting GOPATH. We refer to this as the command
+// of three string values: off, on, or auto (the default).
+// If GO111MODULE=on, then the go command requires the use of modules,
+// never consulting GOPATH. We refer to this as the command
 // being module-aware or running in "module-aware mode".
-// If GO111MODULE=auto, then the go command enables or disables module
-// support based on the current directory. Module support is enabled only
-// when the current directory is outside GOPATH/src and itself contains a
-// go.mod file or is below a directory containing a go.mod file.
 // If GO111MODULE=off, then the go command never uses
 // module support. Instead it looks in vendor directories and GOPATH
 // to find dependencies; we now refer to this as "GOPATH mode."
+// If GO111MODULE=auto or is unset, then the go command enables or disables
+// module support based on the current directory.
+// Module support is enabled only when the current directory contains a
+// go.mod file or is below a directory containing a go.mod file.
 //
 // In module-aware mode, GOPATH no longer defines the meaning of imports
 // during a build, but it still stores downloaded dependencies (in GOPATH/pkg/mod)
@@ -2579,7 +2584,9 @@
 // The go command can fetch modules from a proxy or connect to source control
 // servers directly, according to the setting of the GOPROXY environment
 // variable (see 'go help env'). The default setting for GOPROXY is
-// "https://proxy.golang.org", the Go module mirror run by Google.
+// "https://proxy.golang.org,direct", which means to try the
+// Go module mirror run by Google and fall back to a direct connection
+// if the proxy reports that it does not have the module (HTTP error 404 or 410).
 // See https://proxy.golang.org/privacy for the service's privacy policy.
 // If GOPROXY is set to the string "direct", downloads use a direct connection
 // to source control servers. Setting GOPROXY to "off" disallows downloading
@@ -2608,8 +2615,9 @@
 // No matter the source of the modules, the go command checks downloads against
 // known checksums, to detect unexpected changes in the content of any specific
 // module version from one day to the next. This check first consults the current
-// module's go.sum file but falls back to the Go checksum database.
-// See 'go help module-auth' for details.
+// module's go.sum file but falls back to the Go checksum database, controlled by
+// the GOSUMDB and GONOSUMDB environment variables. See 'go help module-auth'
+// for details.
 //
 // See 'go help goproxy' for details about the proxy protocol and also
 // the format of the cached downloaded packages.
